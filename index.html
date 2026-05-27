@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#f97316" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NPAT" />
+  <meta name="description" content="Name Place Animal Thing — multiplayer word game by Amar Jere" />
+  <title>Name · Place · Animal · Thing</title>
+
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230a0a0f'/><text x='256' y='340' font-size='300' text-anchor='middle' fill='%23f97316' font-family='sans-serif' font-weight='bold'>N</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:#0a0a0f; --surface:#13121a; --card:#1c1b26; --border:#2a2838;
+      --accent:#f97316; --accent-dim:rgba(249,115,22,.13); --accent-glow:rgba(249,115,22,.26);
+      --gold:#fbbf24; --purple:#8b5cf6; --green:#10b981; --red:#f43f5e; --blue:#38bdf8;
+      --text:#f1f0f9; --muted:#6b6882; --sub:#9895b0;
+      --sat: env(safe-area-inset-top,0px); --sab: env(safe-area-inset-bottom,0px);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;overflow-x:hidden}
+    #root{min-height:100vh;min-height:-webkit-fill-available;display:flex;flex-direction:column}
+    input,button{font-family:'Instrument Sans',sans-serif}
+    input:focus{outline:none}
+    input::placeholder{color:#3d3b52}
+    button{cursor:pointer;border:none}
+    ::-webkit-scrollbar{width:3px}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes popIn{from{opacity:0;transform:scale(.45) rotate(-8deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes revealCard{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+    @keyframes countPop{0%,100%{transform:scale(1)}50%{transform:scale(1.4)}}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+    .screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(20px + var(--sat)) 16px calc(20px + var(--sab));background:var(--bg);background-image:radial-gradient(ellipse 60% 40% at 15% 15%,#1a0f2e,transparent),radial-gradient(ellipse 50% 50% at 85% 85%,#0f1a20,transparent);animation:fadeUp .4s ease both}
+    .screen-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;align-items:center;padding:calc(16px + var(--sat)) 16px calc(24px + var(--sab));background:var(--bg);background-image:radial-gradient(ellipse 60% 40% at 15% 15%,#1a0f2e,transparent),radial-gradient(ellipse 50% 50% at 85% 85%,#0f1a20,transparent)}
+    .inner{width:100%;max-width:480px;animation:fadeUp .4s ease both}
+    .inner-wide{width:100%;max-width:560px;animation:fadeUp .4s ease both}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px}
+    .label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600}
+    .inp{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:var(--text);font-size:16px;margin-top:8px;transition:border-color .2s}
+    .inp:focus{border-color:var(--accent)}
+    .btn-p{width:100%;padding:16px;border-radius:14px;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:16px;box-shadow:0 4px 20px var(--accent-glow);transition:transform .15s,opacity .15s;touch-action:manipulation}
+    .btn-p:active{transform:scale(.97);opacity:.9}
+    .btn-p:disabled{opacity:.45}
+    .btn-s{width:100%;padding:14px;border-radius:14px;background:transparent;border:1px solid var(--border);color:var(--sub);font-size:15px;touch-action:manipulation}
+    .btn-s:active{background:var(--surface)}
+    .divider{display:flex;align-items:center;gap:12px;margin:16px 0}
+    .divider-line{flex:1;height:1px;background:var(--border)}
+    .avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;color:#fff;flex-shrink:0;text-transform:uppercase;letter-spacing:-.5px}
+    .spinner{width:22px;height:22px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .7s linear infinite;display:inline-block}
+    .timer-wrap{position:relative;flex-shrink:0}
+    .timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800}
+    .cat-row{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;padding:4px 14px 4px 4px;border:1px solid var(--border);transition:border-color .2s}
+    .cat-icon{width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:600;flex-shrink:0;text-align:center;line-height:1.2}
+    .cat-inp{flex:1;background:transparent;border:none;color:var(--text);font-size:16px;font-family:'Instrument Sans',sans-serif;padding:13px 0}
+    .cat-inp:focus{outline:none}
+    .cheat-banner{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.35);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;animation:shake .4s ease}
+    .install-banner{background:var(--accent-dim);border:1px solid var(--accent);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+    .pwa-hint{text-align:center;margin-top:18px;font-size:12px;color:var(--muted);line-height:1.6}
+    .credit{text-align:center;margin-top:20px;font-size:11px;color:var(--muted)}
+    .credit span{color:var(--accent);font-weight:600}
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback}=React;
+
+const CATS=["Name","Place","Animal","Thing"];
+const LETTERS="ABCDEFGHIJKLMNOPRSTW".split("");
+const ROUND_TIME=30,TOTAL_ROUNDS=3,POLL_MS=1500;
+const CAT_C=["#f97316","#8b5cf6","#10b981","#fbbf24"];
+const AV_C=["#f97316","#8b5cf6","#10b981","#38bdf8","#fbbf24","#ec4899"];
+
+function genCode(){return Math.random().toString(36).substring(2,6).toUpperCase()}
+function pickLetter(){return LETTERS[Math.floor(Math.random()*LETTERS.length)]}
+function avBg(name){let h=0;for(let i=0;i<name.length;i++)h=name.charCodeAt(i)+((h<<5)-h);return AV_C[Math.abs(h)%AV_C.length]}
+function Avatar({name,size=36}){return <div className="avatar" style={{width:size,height:size,background:avBg(name),fontSize:size*.38}}>{name.slice(0,2)}</div>}
+
+async function sGet(k){try{const r=await window.storage.get(k,true);return r?JSON.parse(r.value):null}catch{return null}}
+async function sSet(k,v){try{await window.storage.set(k,JSON.stringify(v),true)}catch{}}
+async function sDel(k){try{await window.storage.delete(k,true)}catch{}}
+
+async function judgeAnswers(letter,list){
+  const body=list.map(p=>`${p.name}: Name="${p.ans.Name}", Place="${p.ans.Place}", Animal="${p.ans.Animal}", Thing="${p.ans.Thing}"`).join("\n");
+  const prompt=`Judge a "Name Place Animal Thing" game. Letter: "${letter}"\n\n${body}\n\nRules:\n- 10pts: valid answer starting with "${letter}"\n- 5pts: valid but very common\n- 0pts: empty, wrong letter, not real\n- Clash: 2+ same answer (case-insensitive) = 5pts each\n\nJSON only (no markdown):\n{"players":[{"name":"X","scores":{"Name":0,"Place":0,"Animal":0,"Thing":0},"feedback":{"Name":"","Place":"","Animal":"","Thing":""},"valid":{"Name":true,"Place":true,"Animal":true,"Thing":true},"total":0}],"clashes":[]}`;
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:prompt}]})});
+    const d=await r.json();
+    const t=d.content?.find(b=>b.type==="text")?.text||"";
+    return JSON.parse(t.replace(/```json|```/g,"").trim());
+  }catch{
+    const players=list.map(p=>{
+      let total=0;const scores={},feedback={},valid={};
+      CATS.forEach(c=>{const a=p.ans[c]?.trim()||"";const ok=a.length>0&&a[0].toUpperCase()===letter;scores[c]=ok?10:0;feedback[c]=ok?"✓":"✗";valid[c]=ok;total+=scores[c]});
+      return{name:p.name,scores,feedback,valid,total};
+    });
+    return{players,clashes:[]};
+  }
+}
+
+function TimerRing({seconds,total}){
+  const size=68,r=28,circ=2*Math.PI*r,pct=seconds/total;
+  const color=pct>.5?"#10b981":pct>.25?"#fbbf24":"#f43f5e";
+  return(
+    <div className="timer-wrap" style={{width:size,height:size}}>
+      <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#2a2838" strokeWidth="5"/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="5"
+          strokeDasharray={circ} strokeDashoffset={circ*(1-pct)} strokeLinecap="round"
+          style={{transition:"stroke-dashoffset .9s linear,stroke .4s"}}/>
+      </svg>
+      <div className="timer-num" style={{fontSize:20,color,animation:seconds<=5?"countPop .9s infinite":"none"}}>{seconds}</div>
+    </div>
+  );
+}
+
+function InstallBanner(){
+  const [prompt,setPrompt]=useState(null);
+  const [show,setShow]=useState(false);
+  const [ios,setIos]=useState(false);
+  useEffect(()=>{
+    if(window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone)return;
+    if(/iphone|ipad|ipod/i.test(navigator.userAgent)){setIos(true);setShow(true);return}
+    const h=e=>{e.preventDefault();setPrompt(e);setShow(true)};
+    window.addEventListener("beforeinstallprompt",h);
+    return()=>window.removeEventListener("beforeinstallprompt",h);
+  },[]);
+  if(!show)return null;
+  if(ios)return(
+    <div className="install-banner" onClick={()=>setShow(false)}>
+      <span style={{fontSize:24}}>📲</span>
+      <div style={{flex:1}}>
+        <div style={{fontWeight:600,fontSize:13,color:"#f97316"}}>Add to Home Screen</div>
+        <div style={{fontSize:12,color:"#9895b0",marginTop:2}}>Tap <strong>Share ↑</strong> then <strong>"Add to Home Screen"</strong></div>
+      </div>
+      <span style={{color:"#6b6882",fontSize:18,cursor:"pointer"}}>✕</span>
+    </div>
+  );
+  return(
+    <div className="install-banner" style={{cursor:"pointer"}} onClick={async()=>{if(prompt){prompt.prompt();await prompt.userChoice}setShow(false)}}>
+      <span style={{fontSize:24}}>📲</span>
+      <div style={{flex:1}}>
+        <div style={{fontWeight:600,fontSize:13,color:"#f97316"}}>Install App</div>
+        <div style={{fontSize:12,color:"#9895b0",marginTop:2}}>Add NPAT to your home screen</div>
+      </div>
+      <span style={{color:"#6b6882",fontSize:18}}>✕</span>
+    </div>
+  );
+}
+
+function App(){
+  const [screen,setScreen]=useState("home");
+  const [myName,setMyName]=useState("");
+  const [nameInput,setNameInput]=useState("");
+  const [joinCode,setJoinCode]=useState("");
+  const [roomCode,setRoomCode]=useState("");
+  const [isHost,setIsHost]=useState(false);
+  const [gs,setGs]=useState(null);
+  const [answers,setAnswers]=useState({Name:"",Place:"",Animal:"",Thing:""});
+  const [submitted,setSubmitted]=useState(false);
+  const [timeLeft,setTimeLeft]=useState(ROUND_TIME);
+  const [judging,setJudging]=useState(false);
+  const [error,setError]=useState("");
+  const [tabSw,setTabSw]=useState(0);
+  const [cheatWarn,setCheatWarn]=useState(false);
+
+  const timerRef=useRef(null),pollRef=useRef(null),lastPhaseRef=useRef(null);
+  const inputRefs=useRef([]),swRef=useRef(0),playRef=useRef(false);
+  const subRef=useRef(false),ansRef=useRef({Name:"",Place:"",Animal:"",Thing:""});
+  const roomRef=useRef(""),nameRef=useRef("");
+
+  useEffect(()=>{ansRef.current=answers},[answers]);
+  useEffect(()=>{roomRef.current=roomCode},[roomCode]);
+  useEffect(()=>{nameRef.current=myName},[myName]);
+  useEffect(()=>()=>{clearInterval(pollRef.current);clearInterval(timerRef.current)},[]);
+
+  useEffect(()=>{
+    const h=()=>{
+      if(document.hidden&&playRef.current&&!subRef.current){
+        swRef.current+=1;setTabSw(swRef.current);setCheatWarn(true);doAutoSubmit();
+      }
+    };
+    document.addEventListener("visibilitychange",h);
+    return()=>document.removeEventListener("visibilitychange",h);
+  },[]);
+
+  useEffect(()=>{
+    if(!gs)return;
+    playRef.current=(gs.phase==="playing");
+    if(gs.phase===lastPhaseRef.current)return;
+    lastPhaseRef.current=gs.phase;
+    if(gs.phase==="playing"){
+      setSubmitted(false);subRef.current=false;swRef.current=0;setTabSw(0);setCheatWarn(false);
+      setAnswers({Name:"",Place:"",Animal:"",Thing:""});
+      setTimeLeft(ROUND_TIME);clearInterval(timerRef.current);
+      timerRef.current=setInterval(()=>setTimeLeft(t=>{if(t<=1){clearInterval(timerRef.current);return 0}return t-1}),1000);
+    }
+  },[gs?.phase,gs?.round]);
+
+  useEffect(()=>{if(timeLeft===0&&gs?.phase==="playing"&&!subRef.current)doSubmit(ansRef.current)},[timeLeft]);
+
+  useEffect(()=>{
+    if(!isHost||gs?.phase!=="playing")return;
+    const p=gs.players||[],s=gs.submissions||{};
+    if(p.length>0&&p.every(x=>s[x]))runJudging();
+  },[gs?.submissions,isHost]);
+
+  function startPolling(code){
+    if(pollRef.current)clearInterval(pollRef.current);
+    pollRef.current=setInterval(async()=>{const g=await sGet(`room:${code}`);if(g)setGs(g)},POLL_MS);
+  }
+
+  async function createRoom(){
+    if(!nameInput.trim()){setError("Enter your name");return}
+    const code=genCode(),name=nameInput.trim();
+    const g={code,phase:"lobby",round:0,players:[name],host:name,scores:{[name]:0},submissions:{},results:null,history:[],cheatFlags:{}};
+    await sSet(`room:${code}`,g);
+    setRoomCode(code);setMyName(name);setIsHost(true);setGs(g);startPolling(code);setScreen("lobby");
+  }
+
+  async function joinRoom(){
+    if(!nameInput.trim()){setError("Enter your name");return}
+    if(!joinCode.trim()){setError("Enter a room code");return}
+    const code=joinCode.trim().toUpperCase();
+    const g=await sGet(`room:${code}`);
+    if(!g){setError("Room not found!");return}
+    if(g.phase!=="lobby"){setError("Game already started!");return}
+    const name=nameInput.trim();
+    if(g.players.includes(name)){setError("Name taken in this room!");return}
+    const upd={...g,players:[...g.players,name],scores:{...g.scores,[name]:0}};
+    await sSet(`room:${code}`,upd);
+    setRoomCode(code);setMyName(name);setIsHost(false);setGs(upd);startPolling(code);setScreen("lobby");
+  }
+
+  async function startGame(){
+    const g=await sGet(`room:${roomCode}`);
+    const upd={...g,phase:"playing",round:1,letter:pickLetter(),submissions:{},results:null,roundStartTime:Date.now()};
+    await sSet(`room:${roomCode}`,upd);setGs(upd);
+  }
+
+  async function doAutoSubmit(){
+    if(subRef.current)return;subRef.current=true;setSubmitted(true);
+    const ans={...ansRef.current};
+    setTimeout(async()=>{
+      const g=await sGet(`room:${roomRef.current}`);if(!g)return;
+      const upd={...g,submissions:{...g.submissions,[nameRef.current]:ans},cheatFlags:{...(g.cheatFlags||{}),[nameRef.current]:swRef.current}};
+      await sSet(`room:${roomRef.current}`,upd);setGs(upd);
+    },80);
+  }
+
+  async function doSubmit(ans){
+    if(subRef.current)return;subRef.current=true;setSubmitted(true);
+    const g=await sGet(`room:${roomCode}`);
+    const upd={...g,submissions:{...g.submissions,[myName]:ans},cheatFlags:{...(g.cheatFlags||{}),[myName]:swRef.current}};
+    await sSet(`room:${roomCode}`,upd);setGs(upd);
+  }
+
+  async function runJudging(){
+    if(judging)return;setJudging(true);
+    const g=await sGet(`room:${roomCode}`);
+    if(!g||g.phase!=="playing"){setJudging(false);return}
+    const list=g.players.map(p=>({name:p,ans:g.submissions[p]||{Name:"",Place:"",Animal:"",Thing:""}}));
+    const j=await judgeAnswers(g.letter,list);
+    const ns={...g.scores};j.players.forEach(p=>{ns[p.name]=(ns[p.name]||0)+p.total});
+    const isLast=g.round>=TOTAL_ROUNDS;
+    const upd={...g,phase:isLast?"final":"reveal",results:j,scores:ns,history:[...(g.history||[]),{round:g.round,letter:g.letter,j}]};
+    await sSet(`room:${roomCode}`,upd);setGs(upd);setJudging(false);
+  }
+
+  async function nextRound(){
+    const g=await sGet(`room:${roomCode}`);
+    const upd={...g,phase:"playing",round:g.round+1,letter:pickLetter(),submissions:{},results:null,roundStartTime:Date.now()};
+    await sSet(`room:${roomCode}`,upd);setGs(upd);
+  }
+
+  async function resetGame(){
+    await sDel(`room:${roomCode}`);
+    clearInterval(pollRef.current);clearInterval(timerRef.current);
+    setScreen("home");setGs(null);setRoomCode("");setMyName("");setIsHost(false);
+  }
+
+  /* ── HOME ── */
+  if(screen==="home")return(
+    <div className="screen">
+      <div className="inner">
+        <InstallBanner/>
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div className="label" style={{color:"#f97316",marginBottom:12}}>Multiplayer Word Game</div>
+          <h1 style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:"clamp(44px,13vw,70px)",lineHeight:.95,marginBottom:12}}>
+            Name<span style={{color:"#f97316"}}>.</span><br/>
+            Place<span style={{color:"#8b5cf6"}}>.</span><br/>
+            Animal<span style={{color:"#10b981"}}>.</span><br/>
+            Thing<span style={{color:"#fbbf24"}}>.</span>
+          </h1>
+          <p style={{color:"var(--muted)",fontSize:14,lineHeight:1.6}}>Real-time · AI judging · Cheat detection</p>
+          <div style={{marginTop:10,fontSize:12,color:"var(--muted)"}}>Built by <span style={{color:"#f97316",fontWeight:600}}>Amar Jere</span></div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <div className="label">Your Name</div>
+          <input className="inp" value={nameInput} onChange={e=>{setNameInput(e.target.value);setError("")}} placeholder="Enter your name…" maxLength={20} autoCapitalize="words" onKeyDown={e=>e.key==="Enter"&&nameInput&&createRoom()}/>
+        </div>
+        {error&&<div style={{color:"var(--red)",fontSize:13,marginBottom:10,textAlign:"center"}}>{error}</div>}
+        <button className="btn-p" onClick={createRoom} style={{marginBottom:10}}>🎮 Create Room</button>
+        <div className="divider"><div className="divider-line"/><span style={{color:"var(--muted)",fontSize:13}}>or join existing</span><div className="divider-line"/></div>
+        <div style={{display:"flex",gap:10}}>
+          <input className="inp" value={joinCode} onChange={e=>{setJoinCode(e.target.value.toUpperCase());setError("")}} placeholder="CODE" maxLength={4} style={{marginTop:0,flex:1,textTransform:"uppercase",fontFamily:"'Syne',sans-serif",fontWeight:700,letterSpacing:5,fontSize:22,textAlign:"center"}}/>
+          <button onClick={joinRoom} style={{padding:"14px 18px",borderRadius:14,border:"1px solid #f97316",background:"rgba(249,115,22,.13)",color:"#f97316",fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,flexShrink:0,touchAction:"manipulation"}}>Join →</button>
+        </div>
+        <div className="pwa-hint">
+          📱 <strong>iPhone:</strong> tap Share ↑ → "Add to Home Screen"<br/>
+          🤖 <strong>Android:</strong> tap ⋮ → "Add to Home Screen"
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── LOBBY ── */
+  if(screen==="lobby"){
+    const players=gs?.players||[];
+    return(
+      <div className="screen">
+        <div className="inner">
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <div className="label">Room Code</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:58,letterSpacing:8,color:"#f97316",textShadow:"0 0 40px rgba(249,115,22,.4)"}}>{roomCode}</div>
+            <p style={{color:"var(--muted)",fontSize:13,marginTop:4}}>Share this code with friends</p>
+          </div>
+          <div className="card" style={{marginBottom:12}}>
+            <div className="label" style={{marginBottom:12}}>Players ({players.length})</div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {players.map((p,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:12}}>
+                  <Avatar name={p}/>
+                  <span style={{fontWeight:500,flex:1}}>{p}</span>
+                  {p===gs.host&&<span style={{fontSize:11,color:"#fbbf24",letterSpacing:1,textTransform:"uppercase"}}>host</span>}
+                  {p===myName&&<span style={{fontSize:11,color:"var(--muted)"}}>you</span>}
+                </div>
+              ))}
+              {players.length<2&&<div style={{color:"var(--muted)",fontSize:13,fontStyle:"italic",textAlign:"center",padding:"4px 0"}}>Waiting for friends…</div>}
+            </div>
+          </div>
+          <div className="card" style={{marginBottom:14,background:"var(--surface)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",color:"var(--muted)",fontSize:13}}>
+              <span>⏱ {ROUND_TIME}s/round</span><span>🔄 {TOTAL_ROUNDS} rounds</span><span>🤖 AI judging</span>
+            </div>
+          </div>
+          {isHost
+            ?<button className="btn-p" onClick={startGame}>{players.length<2?"Start Solo / Wait for friends":"Start Game →"}</button>
+            :<div style={{textAlign:"center",color:"var(--muted)",fontSize:14,padding:14,animation:"pulse 2s infinite"}}>Waiting for host to start…</div>
+          }
+          <div className="credit">Built by <span>Amar Jere</span></div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── PLAYING ── */
+  if(gs?.phase==="playing"){
+    const waitingFor=(gs.players||[]).filter(p=>!gs.submissions?.[p]);
+    const mySub=!!gs.submissions?.[myName]||submitted;
+    return(
+      <div className="screen-scroll">
+        <div className="inner">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <div>
+              <div className="label">Round {gs.round}/{TOTAL_ROUNDS}</div>
+              <div style={{fontSize:13,color:"var(--muted)",marginTop:3}}>{mySub?`Waiting for ${waitingFor.length} player(s)…`:`${gs.players.length} player(s)`}</div>
+            </div>
+            <TimerRing seconds={timeLeft} total={ROUND_TIME}/>
+          </div>
+          <div style={{textAlign:"center",marginBottom:18}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:"clamp(72px,22vw,108px)",lineHeight:1,color:"#f97316",textShadow:"0 0 60px rgba(249,115,22,.35)",animation:"popIn .4s cubic-bezier(.34,1.56,.64,1)"}}>{gs.letter}</div>
+            <div style={{color:"var(--muted)",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginTop:4}}>this round's letter</div>
+          </div>
+          {cheatWarn&&(
+            <div className="cheat-banner">
+              <span style={{fontSize:22}}>🚨</span>
+              <div>
+                <div style={{color:"var(--red)",fontWeight:600,fontSize:14}}>Tab switch detected!</div>
+                <div style={{color:"var(--muted)",fontSize:12,marginTop:2}}>Answers auto-submitted · {tabSw}× flag recorded</div>
+              </div>
+            </div>
+          )}
+          {mySub?(
+            <div className="card" style={{textAlign:"center",padding:32}}>
+              <div style={{fontSize:44,marginBottom:8}}>✅</div>
+              <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:20,marginBottom:6}}>Answers in!</div>
+              <div style={{color:"var(--muted)",fontSize:14,marginBottom:18}}>Waiting for others…</div>
+              <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
+                {(gs.players||[]).map(p=>(
+                  <div key={p} className="chip" style={{background:gs.submissions?.[p]?"rgba(16,185,129,.15)":"var(--surface)",border:`1px solid ${gs.submissions?.[p]?"rgba(16,185,129,.35)":"var(--border)"}`}}>
+                    <Avatar name={p} size={20}/>
+                    <span style={{fontSize:13,color:gs.submissions?.[p]?"#10b981":"var(--muted)"}}>{p} {gs.submissions?.[p]?"✓":"…"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ):(
+            <>
+              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:14}}>
+                {CATS.map((cat,i)=>(
+                  <div key={cat} className="cat-row" style={{borderColor:answers[cat]?CAT_C[i]+"55":"var(--border)"}}>
+                    <div className="cat-icon" style={{background:CAT_C[i]+"18",color:CAT_C[i]}}>{cat}</div>
+                    <input ref={el=>inputRefs.current[i]=el} className="cat-inp" value={answers[cat]}
+                      onChange={e=>setAnswers(a=>({...a,[cat]:e.target.value}))}
+                      onKeyDown={e=>{if(e.key==="Enter")i<3?inputRefs.current[i+1]?.focus():doSubmit(answers)}}
+                      placeholder={`${cat} with "${gs.letter}"…`}
+                      autoFocus={i===0} autoCapitalize="words" autoCorrect="off" spellCheck="false"/>
+                  </div>
+                ))}
+              </div>
+              <button className="btn-p" onClick={()=>doSubmit(answers)}>✋ STOP — Submit Answers</button>
+            </>
+          )}
+          {isHost&&judging&&(
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:14,color:"var(--muted)",fontSize:13}}>
+              <div className="spinner"/> AI is judging…
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── REVEAL / FINAL ── */
+  if(gs?.phase==="reveal"||gs?.phase==="final"){
+    const j=gs.results,isFinal=gs.phase==="final";
+    const rs={};j?.players?.forEach(p=>{rs[p.name]=p.total});
+    return(
+      <div className="screen-scroll">
+        <div className="inner-wide">
+          <div style={{textAlign:"center",marginBottom:18}}>
+            <div className="label">Round {gs.round} · Letter</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:64,color:"#f97316",lineHeight:1}}>{gs.letter}</div>
+          </div>
+          {CATS.map((cat,ci)=>{
+            const col=CAT_C[ci],isClash=j?.clashes?.includes(cat);
+            return(
+              <div key={cat} className="card" style={{marginBottom:10,border:`1px solid ${col}33`,animation:`revealCard .4s ${ci*.1}s both`}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,color:col,fontSize:13,letterSpacing:2,textTransform:"uppercase"}}>{cat}</div>
+                  {isClash&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"rgba(251,191,36,.15)",color:"#fbbf24"}}>⚠ CLASH — 5pts</span>}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {(gs.players||[]).map((pname,pi)=>{
+                    const pd=j?.players?.find(p=>p.name===pname);
+                    const ans=gs.submissions?.[pname]?.[cat]||"";
+                    const pts=pd?.scores?.[cat]??0,valid=pd?.valid?.[cat],reason=pd?.feedback?.[cat]||"";
+                    const sw=gs.cheatFlags?.[pname]||0;
+                    return(
+                      <div key={pi} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,background:sw>0?"rgba(244,63,94,.07)":valid?`${col}0e`:"rgba(244,63,94,.06)",border:`1px solid ${sw>0?"rgba(244,63,94,.3)":valid?col+"28":"rgba(244,63,94,.18)"}`,animation:`fadeUp .3s ${ci*.1+pi*.06}s both`}}>
+                        <Avatar name={pname} size={28}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                            <span style={{fontWeight:500,fontSize:15,color:valid?"var(--text)":"var(--muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"55%"}}>
+                              {ans||<em style={{color:"rgba(244,63,94,.6)",fontSize:13}}>no answer</em>}
+                            </span>
+                            {sw>0&&<span style={{fontSize:10,padding:"1px 6px",borderRadius:10,background:"rgba(244,63,94,.18)",color:"var(--red)",whiteSpace:"nowrap",flexShrink:0}}>🚨 {sw}× tab</span>}
+                          </div>
+                          <div style={{fontSize:11,color:"var(--muted)",marginTop:2}}>{reason}</div>
+                        </div>
+                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:22,color:pts>=10?"#10b981":pts===5?"#fbbf24":"var(--red)"}}>+{pts}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          <div className="card" style={{marginBottom:14,animation:"revealCard .4s .45s both"}}>
+            <div className="label" style={{marginBottom:12}}>{isFinal?"🏆 Final Scores":"Standings"}</div>
+            {[...(gs.players||[])].sort((a,b)=>(gs.scores[b]||0)-(gs.scores[a]||0)).map((p,i)=>{
+              const sw=gs.cheatFlags?.[p]||0;
+              return(
+                <div key={p} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<gs.players.length-1?"1px solid var(--border)":"none"}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:18,width:28,color:i===0?"#fbbf24":"var(--muted)"}}>{i===0?"🥇":i===1?"🥈":"🥉"}</div>
+                  <Avatar name={p}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:500,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",fontSize:15}}>
+                      {p}
+                      {p===myName&&<span style={{color:"var(--muted)",fontSize:12}}>(you)</span>}
+                      {sw>0&&<span style={{fontSize:10,padding:"2px 7px",borderRadius:10,background:"rgba(244,63,94,.18)",color:"var(--red)"}}>🚨 {sw}× tab</span>}
+                    </div>
+                    <div style={{fontSize:12,color:"#10b981"}}>+{rs[p]||0} this round</div>
+                  </div>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:28,color:i===0?"#fbbf24":"var(--text)"}}>{gs.scores[p]||0}</div>
+                </div>
+              );
+            })}
+          </div>
+          {isFinal?(
+            <div style={{display:"flex",gap:10}}>
+              {isHost&&<button className="btn-p" onClick={resetGame}>🔄 Play Again</button>}
+              {!isHost&&<div className="btn-s" style={{textAlign:"center",padding:15}}>Game over! Host can restart.</div>}
+            </div>
+          ):isHost?(
+            <button className="btn-p" onClick={nextRound}>Next Round ({gs.round+1}/{TOTAL_ROUNDS}) →</button>
+          ):(
+            <div style={{textAlign:"center",color:"var(--muted)",fontSize:14,padding:14,animation:"pulse 2s infinite"}}>Waiting for host to start next round…</div>
+          )}
+          <div className="credit">Built by <span>Amar Jere</span></div>
+        </div>
+      </div>
+    );
+  }
+
+  return(
+    <div className="screen">
+      <div className="spinner"/>
+      <div style={{color:"var(--muted)",marginTop:12,fontSize:14}}>Loading…</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+<script>
+if("serviceWorker" in navigator){
+  const sw=`const C="npat-v1";self.addEventListener("install",e=>{self.skipWaiting()});self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim()});self.addEventListener("fetch",e=>{if(e.request.url.includes("api.anthropic")||e.request.url.includes("fonts.")||e.request.url.includes("cdnjs."))return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const clone=res.clone();caches.open(C).then(c=>c.put(e.request,clone));return res})))})`;
+  const blob=new Blob([sw],{type:"application/javascript"});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+</script>
+</body>
+</html>
